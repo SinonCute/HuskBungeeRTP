@@ -6,7 +6,7 @@ import me.william278.huskbungeertp.MessageManager;
 import me.william278.huskbungeertp.mysql.DataHandler;
 import me.william278.huskbungeertp.randomtp.RtpHandler;
 import me.william278.huskbungeertp.randomtp.processor.AbstractRtp;
-import me.william278.huskhomes2.teleport.points.TeleportationPoint;
+import net.william278.huskhomes.position.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -46,7 +46,7 @@ public class RedisMessenger {
     public static void publish(RedisMessage message) {
         try (Jedis publisher = new Jedis(HuskBungeeRTP.getSettings().getRedisHost(), HuskBungeeRTP.getSettings().getRedisPort())) {
             final String jedisPassword = HuskBungeeRTP.getSettings().getRedisPassword();
-            if (!jedisPassword.equals("")) {
+            if (!jedisPassword.isEmpty()) {
                 publisher.auth(jedisPassword);
             }
             publisher.connect();
@@ -101,13 +101,11 @@ public class RedisMessenger {
 
                 Player player = Bukkit.getPlayer(originPlayerUUID);
                 if (player != null) {
-                    HuskHomesExecutor.teleportPlayer(player, new TeleportationPoint(
-                            locationWorld, locationX, locationY, locationZ, 0F, 0F, sourceServer));
-
+                    Position position = Position.at(locationX, locationY, locationZ, net.william278.huskhomes.position.World.from(locationWorld, UUID.randomUUID()), sourceServer);
+                    HuskBungeeRTP.getHuskHomesAPIHook().teleportPlayer(player, position);
                     // Apply cool down
                     if (!player.hasPermission("huskrtp.bypass_cooldown")) {
-                        DataHandler.setPlayerOnCoolDown(originPlayerUUID, HuskBungeeRTP.getSettings().getGroupById(destinationGroupId),
-                                new TeleportationPoint(locationWorld, locationX, locationY, locationZ, 0F, 0F, sourceServer));
+                        DataHandler.setPlayerOnCoolDown(originPlayerUUID, HuskBungeeRTP.getSettings().getGroupById(destinationGroupId), position);
                     }
                 }
                 RtpHandler.removeRtpUser(originPlayerUUID);

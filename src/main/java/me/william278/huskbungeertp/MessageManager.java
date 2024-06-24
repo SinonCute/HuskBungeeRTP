@@ -1,8 +1,8 @@
 package me.william278.huskbungeertp;
 
-import de.themoep.minedown.MineDown;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
+import net.kyori.adventure.text.Component;
+import net.william278.huskhomes.libraries.commons.lang3.StringUtils;
+import net.william278.huskhomes.libraries.commons.text.StringEscapeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -93,8 +93,8 @@ public class MessageManager {
             replacementIndexer = replacementIndexer + 1;
         }
 
-        // Convert to baseComponents[] via MineDown formatting and send
-        sender.spigot().sendMessage(new MineDown(message).replace().toComponent());
+        // Send the message
+        sender.sendMessage(Component.text(message));
     }
 
     // Send a message with no placeholder parameters
@@ -106,8 +106,7 @@ public class MessageManager {
             return;
         }
 
-        // Convert to baseComponents[] via MineDown formatting and send
-        sender.spigot().sendMessage(new MineDown(message).replace().toComponent());
+        sender.sendMessage(Component.text(message));
     }
 
     public static String getRawMessage(String messageID) {

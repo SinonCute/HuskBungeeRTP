@@ -1,15 +1,13 @@
 package me.william278.huskbungeertp.randomtp;
 
 import me.william278.huskbungeertp.HuskBungeeRTP;
-import me.william278.huskbungeertp.HuskHomesExecutor;
 import me.william278.huskbungeertp.MessageManager;
 import me.william278.huskbungeertp.config.Group;
 import me.william278.huskbungeertp.jedis.RedisMessage;
 import me.william278.huskbungeertp.jedis.RedisMessenger;
 import me.william278.huskbungeertp.mysql.DataHandler;
-import me.william278.huskbungeertp.plan.PlanDataManager;
 import me.william278.huskbungeertp.randomtp.processor.AbstractRtp;
-import me.william278.huskhomes2.teleport.points.TeleportationPoint;
+import net.william278.huskhomes.position.Position;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -75,14 +73,15 @@ public class RtpHandler {
             final DataHandler.CoolDownResponse coolDownResponse = DataHandler.getPlayerCoolDown(player.getUniqueId(), profile.getDestinationGroup());
             if (coolDownResponse.isInCoolDown() && !canBypassCoolDown) {
                 if (HuskBungeeRTP.getSettings().isUseLastRtpLocationOnCoolDown()) {
-                    TeleportationPoint lastRtpPosition = DataHandler.getPlayerLastRtpPosition(uuid, profile.getDestinationGroup());
+                    Position lastRtpPosition = DataHandler.getPlayerLastRtpPosition(uuid, profile.getDestinationGroup());
                     if (lastRtpPosition != null) {
                         if (coolDownResponse.timeLeft() <= 60) {
                             MessageManager.sendMessage(player, "last_rtp_cooldown_seconds", Long.toString(coolDownResponse.timeLeft()));
                         } else {
                             MessageManager.sendMessage(player, "last_rtp_cooldown_minutes", Integer.toString((int) (coolDownResponse.timeLeft() / 60)));
                         }
-                        HuskHomesExecutor.teleportPlayer(player, lastRtpPosition);
+                        HuskBungeeRTP.getHuskHomesAPIHook().teleportPlayer(player, lastRtpPosition);
+//                        HuskHomesExecutor.teleportPlayer(player, lastRtpPosition);
                         return;
                     }
                 }
@@ -117,8 +116,15 @@ public class RtpHandler {
                         removeRtpUser(uuid);
                         return;
                     }
-                    final TeleportationPoint targetPoint = new TeleportationPoint(result.location(), targetServer.getName());
-                    HuskHomesExecutor.teleportPlayer(player, targetPoint);
+//                    final TeleportationPoint targetPoint = new TeleportationPoint(result.location(), targetServer.getName());
+                    final Position targetPoint = Position.at(
+                            result.location().getX(),
+                            result.location().getY(),
+                            result.location().getZ(),
+                            0F, 0F,
+                            net.william278.huskhomes.position.World.from(result.location().getWorld().getName(), UUID.randomUUID()), targetServer.getName());
+//                    HuskHomesExecutor.teleportPlayer(player, targetPoint);
+                    HuskBungeeRTP.getHuskHomesAPIHook().teleportPlayer(player, targetPoint);
                     removeRtpUser(uuid);
 
                     // Apply cool down
@@ -140,21 +146,21 @@ public class RtpHandler {
     private static Group.Server determineTargetServer(HashSet<Group.Server> servers) {
         final HashSet<Group.Server> possibleTargets = new HashSet<>(servers);
         switch (HuskBungeeRTP.getSettings().getLoadBalancingMethod()) {
-            case PLAN -> {
-                if (PlanDataManager.usePlanIntegration()) {
-                    PlanDataManager.fetchPlanIfNeeded(); // Pull fresh plan data if needed
-                    HashSet<String> targetServerIds = PlanDataManager.getServerIdsWithLowestPlayTime(servers);
-                    possibleTargets.clear();
-                    for (Group.Server server : servers) {
-                        for (String serverId : targetServerIds) {
-                            if (server.getName().equals(serverId)) {
-                                possibleTargets.add(server);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+//            case PLAN -> {
+//                if (PlanDataManager.usePlanIntegration()) {
+//                    PlanDataManager.fetchPlanIfNeeded(); // Pull fresh plan data if needed
+//                    HashSet<String> targetServerIds = PlanDataManager.getServerIdsWithLowestPlayTime(servers);
+//                    possibleTargets.clear();
+//                    for (Group.Server server : servers) {
+//                        for (String serverId : targetServerIds) {
+//                            if (server.getName().equals(serverId)) {
+//                                possibleTargets.add(server);
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
             case PLAYER_COUNTS -> {
                 HuskBungeeRTP.updateServerPlayerCounts(); // Pull fresh player counts
                 HashSet<String> targetServerIds = HuskBungeeRTP.getServerIdsWithFewestPlayers(servers);
